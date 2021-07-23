@@ -14,4 +14,11 @@ const userSchema = new mongoose.Schema({
   createAt: Date,
 });
 
+const loginSchema = new mongoose.Schema({
+  fullname: { type: String, required: true },
+  email: { type: String, required: true },
+  password: { type: String, required: true },
+});
+
 export const userData = mongoose.model("User", userSchema);
+export const loginData = mongoose.model("LoginData", loginSchema);
