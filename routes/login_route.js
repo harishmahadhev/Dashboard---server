@@ -9,7 +9,7 @@ const router = express.Router();
 router.route("/signin").post(async (req, res) => {
   const { email, password } = req.body;
   try {
-    const { error } = await signinValidation(req.body);
+    const { error } = signinValidation(req.body);
     if (error)
       return res.status(400).send({ message: error.details[0].message });
     const userExists = await loginData.findOne({ email });
@@ -39,7 +39,7 @@ router
   .post(async (req, res) => {
     let { email, password, fullname } = req.body;
     try {
-      const { error } = await signupValidation(req.body);
+      const { error } = signupValidation(req.body);
       if (error)
         return res.status(400).send({ message: error.details[0].message });
       const userExists = await loginData.findOne({ email });
