@@ -6,12 +6,10 @@ router
   .route("/")
   .get(async (req, res) => {
     const user = await userData.find({});
-    console.log(user);
     res.send(user);
   })
   .post(async (req, res) => {
     const addUser = req.body;
-    console.log(addUser);
     const user = new userData(addUser);
     console.log(user);
     try {
