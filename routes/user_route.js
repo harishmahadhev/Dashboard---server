@@ -1,5 +1,4 @@
 import express from "express";
-import auth from "../middleware/auth.js";
 import { userData } from "../models/user_model.js";
 const router = express.Router();
 
@@ -10,7 +9,7 @@ router
     console.log(user);
     res.send(user);
   })
-  .post(auth, async (req, res) => {
+  .post(async (req, res) => {
     const addUser = req.body;
     console.log(addUser);
     const user = new userData(addUser);
@@ -30,7 +29,7 @@ router
     const user = await userData.findById(id);
     res.send(user);
   })
-  .delete(auth, async (req, res) => {
+  .delete(async (req, res) => {
     const { id } = req.params;
     try {
       const user = await userData.findByIdAndRemove(id);
@@ -40,7 +39,7 @@ router
       res.send("User is missing");
     }
   })
-  .patch(auth, async (req, res) => {
+  .patch(async (req, res) => {
     const { id } = req.params;
     try {
       const user = await userData.findByIdAndUpdate(id, req.body);
