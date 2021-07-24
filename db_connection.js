@@ -5,7 +5,11 @@ const url = process.env.MONGOURL || process.env.URL;
 
 mongoose.connect(
   url,
-  { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false },
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useFindAndModify: false,
+  },
   (err) => {
     if (err) console.log("Error : ", JSON.stringify(err, undefined, 2));
   }

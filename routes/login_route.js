@@ -3,6 +3,18 @@ import { loginData } from "../models/user_model.js";
 import jwt from "jsonwebtoken";
 import bcyrpt from "bcryptjs";
 import { signinValidation, signupValidation } from "./../shared/validation.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+import sgTransport from "nodemailer-sendgrid-transport";
+import dotenv from "dotenv";
+dotenv.config();
+const transporter = nodemailer.createTransport(
+  sgTransport({
+    auth: {
+      api_key: process.env.SENDGRID_API,
+    },
+  })
+);
 
 const router = express.Router();
 
@@ -28,7 +40,7 @@ router.route("/signin").post(async (req, res) => {
       "dashboard",
       { expiresIn: "8h" }
     );
-    res.status(200).send({ message: userExists, token: token });
+    res.status(200).json({ message: userExists, token: token });
   } catch (error) {
     res.status(500).json({ message: "Something went wrong" });
   }
@@ -53,7 +65,7 @@ router
         "dashboard",
         { expiresIn: "1h" }
       );
-      res.status(200).send({ message: result, token });
+      res.status(200).json({ message: result, token });
     } catch (error) {
       res.status(500).json({ message: "something went wrong" });
       console.log(error);
@@ -62,7 +74,6 @@ router
   .get(async (req, res) => {
     try {
       const user = await loginData.find({});
-      console.log(user);
       res.send(user);
     } catch (error) {
       console.log(error);
@@ -86,5 +97,50 @@ router
       console.log(error);
     }
   });
+
+router.route("/forgotpassword").post((req, res) => {
+  crypto.randomBytes(32, (err, buffer) => {
+    if (err) console.log(err);
+    const token = buffer.toString("hex");
+    loginData.findOne({ email: req.body.email }).then((user) => {
+      user.resettoken = token;
+      user.expiretoken = Date.now() + 1800000;
+      user.save();
+      transporter.sendMail({
+        to: user.email,
+        from: process.env.SENDER,
+        subject: "Password Reset Link",
+        html: `
+          <h2>Forgetting is human, don't worry</h2>
+          <h5>You requested to reset the password for account</h5>
+          <p>Click <a href ="${process.env.BASEURL}/reset/${token}">here</a> to reset your password</p>
+          `,
+      });
+      res.send({ data: "check your mail" });
+    });
+  });
+});
+
+router.route("/reset").post(async (req, res) => {
+  const { token, password } = req.body;
+  console.log(password);
+  const user = await loginData.findOne({
+    resettoken: token,
+    expiretoken: { $gt: Date.now() },
+  });
+  console.log(user);
+  if (!user) res.status(422).json({ message: "token expired" });
+  const salt = await bcyrpt.genSalt(12);
+  const hashedpassword = await bcyrpt.hash(password, salt);
+  user.password = hashedpassword;
+  user.resettoken = undefined;
+  user.expiretoken = undefined;
+  const newuser = await loginData.findByIdAndUpdate(user._id, {
+    resettoken: user.resettoken,
+    expiretoken: user.expiretoken,
+    password: user.password,
+  });
+  res.json({ message: "Password updated" });
+});
 
 export const loginRouter = router;
