@@ -4,18 +4,7 @@ import jwt from "jsonwebtoken";
 import bcyrpt from "bcryptjs";
 import { signinValidation, signupValidation } from "./../shared/validation.js";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
-import sgTransport from "nodemailer-sendgrid-transport";
-import dotenv from "dotenv";
-dotenv.config();
-const transporter = nodemailer.createTransport(
-  sgTransport({
-    auth: {
-      api_key: process.env.SENDGRID_API,
-    },
-  })
-);
-
+import { senderMail } from "./app.js";
 const router = express.Router();
 
 router.route("/signin").post(async (req, res) => {
@@ -106,16 +95,9 @@ router.route("/forgotpassword").post((req, res) => {
       user.resettoken = token;
       user.expiretoken = Date.now() + 1800000;
       user.save();
-      transporter.sendMail({
-        to: user.email,
-        from: process.env.SENDER,
-        subject: "Password Reset Link",
-        html: `
-          <h2>Forgetting is human, don't worry</h2>
-          <h5>You requested to reset the password for account</h5>
-          <p>Click <a href ="${process.env.BASEURL}/reset/${token}">here</a> to reset your password</p>
-          `,
-      });
+      senderMail(user.email, token)
+        .then((result) => console.log(result))
+        .catch((err) => console.log(err));
       res.send({ data: "check your mail" });
     });
   });
@@ -123,19 +105,17 @@ router.route("/forgotpassword").post((req, res) => {
 
 router.route("/reset").post(async (req, res) => {
   const { token, password } = req.body;
-  console.log(password);
   const user = await loginData.findOne({
     resettoken: token,
     expiretoken: { $gt: Date.now() },
   });
-  console.log(user);
   if (!user) res.status(422).json({ message: "token expired" });
   const salt = await bcyrpt.genSalt(12);
   const hashedpassword = await bcyrpt.hash(password, salt);
   user.password = hashedpassword;
   user.resettoken = undefined;
   user.expiretoken = undefined;
-  const newuser = await loginData.findByIdAndUpdate(user._id, {
+  loginData.findByIdAndUpdate(user._id, {
     resettoken: user.resettoken,
     expiretoken: user.expiretoken,
     password: user.password,
